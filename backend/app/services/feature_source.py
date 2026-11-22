@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.services import archive_flow
 from app.services.base import BaseModuleService
 from app.store import store
 
@@ -101,7 +102,7 @@ class FeatureSourceService(BaseModuleService):
         """将数据源快照统计信息归档到存储模块，保留历史版本供回溯。"""
         snapshot_rows = store.rows("feature_snapshot")
         next_id = max((int(r.get("id", 0)) for r in snapshot_rows), default=0) + 1
-        snapshot_rows.append({
+        row = {
             "id": next_id,
             "status": "已完成",
             "pending": False,
@@ -114,4 +115,6 @@ class FeatureSourceService(BaseModuleService):
             "存储路径": f"snapshots/source_{source_id}/{next_id:04d}.json",
             "保留天数": "90",
             "快照状态": "已完成",
-        })
+        }
+        archive_flow.ensure_partition_reference(row)
+        snapshot_rows.append(row)
